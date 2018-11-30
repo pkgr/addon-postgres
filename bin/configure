@@ -1,0 +1,192 @@
+#!/bin/bash
+
+set -e
+
+. "${INSTALLER_DIR}/wizard"
+
+input_start() {
+	local already_setup_with_mysql_addon="$(wiz_get "mysql/autoinstall" || echo "")"
+
+	if [ "$already_setup_with_mysql_addon" != "" ]; then
+		echo "Installation is already using MySQL, skipping postgres addon."
+		STATE="done"
+		return 0;
+	fi
+
+	if _postgres_already_installed then
+		wiz_put "postgres/postgres_already_installed"
+
+		if wiz_ask ; then
+			STATE="postgres_params_host"
+		else
+			STATE="postgres_installation_type"
+		fi
+	else
+		STATE="postgres_installation_type"
+	fi
+}
+
+input_postgres_installation_type() {
+	wiz_put "postgres/autoinstall"
+	if wiz_ask ; then
+		RET=$(wiz_get "postgres/autoinstall")
+		case "$RET" in
+			"skip")
+				STATE="done"
+				;;
+			"install")
+				STATE="done"
+				wiz_get_or_set "postgres/db_host" "127.0.0.1"
+				wiz_get_or_set "postgres/db_port" "45432"
+				wiz_get_or_set "postgres/db_name" "${APP_SAFE_NAME}"
+				wiz_get_or_set "postgres/db_username" "${APP_SAFE_NAME}"
+				wiz_get_or_set "postgres/db_password" ""
+				STATE="postgres_check_connection"
+				;;
+			"reuse")
+				STATE="postgres_params_host"
+				;;
+		esac
+	else
+		STATE="done"
+		echo "PostgreSQL configuration canceled by user."
+		exit 1
+	fi
+}
+
+input_postgres_params_host() {
+	wiz_put "postgres/db_host"
+	wiz_put "postgres/db_port"
+
+	if wiz_ask ; then
+		STATE="postgres_params_user"
+	else
+		STATE="start"
+	fi
+}
+
+input_postgres_params_user() {
+	wiz_put "postgres/db_username"
+	wiz_put "postgres/db_password"
+	wiz_put "postgres/db_name"
+
+	if wiz_ask ; then
+		STATE="postgres_check_connection"
+	else
+		STATE="postgres_params_host"
+	fi
+}
+
+input_postgres_check_connection() {
+	local connection_status="$(_postgres_check_connection)"
+
+	if [ "$connection_status" == "OK" ]; then
+		echo "Postgres connection OK"
+		STATE="done"
+	else
+		wiz_unseen "postgres/retry"
+		wiz_put "postgres/retry"
+		if wiz_ask ; then
+			case "$(wiz_get "postgres/retry")" in
+				"retry")
+					STATE="start"
+					;;
+				"ignore")
+					echo "Warning: PostgreSQL connection has not been successfully tested."
+					STATE="done"
+					;;
+				*)
+					echo "Error: PostgreSQL configuration failed. Aborting."
+					STATE="done"
+					exit 1
+					;;
+			esac
+		else
+			STATE="start"
+		fi
+	fi
+}
+
+function _postgres_already_installed() {
+	# Debian & Ubuntu
+	if [ -f "/etc/init.d/postgresql" ]; then
+		return 0;
+	fi
+	if [ -d "/var/lib/postgresql" ]; then
+		return 0;
+	fi
+
+	# Enterprise Linux & SuSE
+	if wiz_check_package "postgresql-server" ; then
+		return 0;
+	fi
+	if [ -f "/usr/lib/systemd/system/postgresql.service" ]; then
+		return 0;
+	fi
+	if [ -d "/var/lib/pgsql" ]; then
+		return 0;
+	fi
+
+	return 1;
+}
+
+function _postgres_check_connection() {
+	# https://www.postgresql.org/docs/9.3/libpq-envars.html
+	PGPASSWORD="$(wiz_get "postgres/db_password")"
+	PGUSER="$(wiz_get "postgres/db_username")"
+	PGHOST="$(wiz_get "postgres/db_host")"
+	PGPORT="$(wiz_get "postgres/db_port")"
+	PGDATABASE="$(wiz_get "postgres/db_name")"
+	PGCONNECT_TIMEOUT=5
+	local command="select version();"
+
+	case "$(wiz_get "postgres/autoinstall")" in
+			"skip")
+				return 0;
+				;;
+			"install")
+				su "$PGUSER" -c "psql --no-password --command='$command'" ; then
+				return $?
+				;;
+			"reuse")
+				psql --no-password --command="$command" ; then
+				return $?
+				;;
+	esac
+
+	return 0;
+
+}
+
+state_machine() {
+	case "$1" in
+		"start")
+			input_start
+			;;
+		"postgres_params_host")
+			input_postgres_params_host
+			;;
+		"postgres_params_user")
+			input_postrgres_params_user
+			;;
+		"postgres_params_source")
+			input_postgres_params_source
+			;;
+		"postgres_params_ssl")
+			input_postgres_params_ssl
+			;;
+		"postgres_check_connection")
+			input_postgres_check_connection
+			;;
+		"done")
+			echo "DONE"
+			exit 0
+			;;
+		*)
+			echo "invalid state ${STATE}"
+			exit 1
+			;;
+	esac
+}
+
+wizard "start"
