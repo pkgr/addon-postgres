@@ -13,17 +13,7 @@ input_start() {
 		return 0;
 	fi
 
-	if _postgres_already_installed then
-		wiz_put "postgres/postgres_already_installed"
-
-		if wiz_ask ; then
-			STATE="postgres_params_host"
-		else
-			STATE="postgres_installation_type"
-		fi
-	else
-		STATE="postgres_installation_type"
-	fi
+	STATE="postgres_installation_type"
 }
 
 input_postgres_installation_type() {
@@ -78,9 +68,7 @@ input_postgres_params_user() {
 }
 
 input_postgres_check_connection() {
-	local connection_status="$(_postgres_check_connection)"
-
-	if [ "$connection_status" == "OK" ]; then
+	if _postgres_check_connection ; then
 		echo "Postgres connection OK"
 		STATE="done"
 	else
@@ -89,6 +77,7 @@ input_postgres_check_connection() {
 		if wiz_ask ; then
 			case "$(wiz_get "postgres/retry")" in
 				"retry")
+					_reset
 					STATE="start"
 					;;
 				"ignore")
@@ -130,14 +119,23 @@ function _postgres_already_installed() {
 	return 1;
 }
 
+function _reset() {
+	wiz_unseen "postgres/autoinstall"
+	wiz_unseen "postgres/db_host"
+	wiz_unseen "postgres/db_port"
+	wiz_unseen "postgres/db_username"
+	wiz_unseen "postgres/db_password"
+	wiz_unseen "postgres/db_name"
+}
+
 function _postgres_check_connection() {
 	# https://www.postgresql.org/docs/9.3/libpq-envars.html
-	PGPASSWORD="$(wiz_get "postgres/db_password")"
-	PGUSER="$(wiz_get "postgres/db_username")"
-	PGHOST="$(wiz_get "postgres/db_host")"
-	PGPORT="$(wiz_get "postgres/db_port")"
-	PGDATABASE="$(wiz_get "postgres/db_name")"
-	PGCONNECT_TIMEOUT=5
+	export PGPASSWORD="$(wiz_get "postgres/db_password")"
+	export PGHOST="$(wiz_get "postgres/db_host")"
+	export PGPORT="$(wiz_get "postgres/db_port")"
+	export PGUSER="$(wiz_get "postgres/db_username")"
+	export PGDATABASE="$(wiz_get "postgres/db_name")"
+	export PGCONNECT_TIMEOUT=5
 	local command="select version();"
 
 	case "$(wiz_get "postgres/autoinstall")" in
@@ -145,12 +143,28 @@ function _postgres_check_connection() {
 				return 0;
 				;;
 			"install")
-				su "$PGUSER" -c "psql --no-password --command='$command'" ; then
-				return $?
+				return 0;
 				;;
 			"reuse")
-				psql --no-password --command="$command" ; then
-				return $?
+				if [ "$PGHOST" == "localhost" -o "$PGHOST" == "127.0.0.1" ]; then
+					echo "Trying to connect through ident-based authentication..."
+					if env -i PGCONNECT_TIMEOUT=5 PGDATABASE="$PGDATABASE" PGUSER="$PGUSER" \
+						su "$PGUSER" -c "psql --no-password --command='$command'" ; then
+						echo "Connection OK"
+						return 0;
+					else
+						echo "Connection KO"
+					fi
+				fi
+
+				echo "Trying to connect through password-based authentication..."
+				if psql --no-password --command="$command" ; then
+					echo "Connection OK"
+					return 0;
+				else
+					echo "Connection KO"
+					return 1;
+				fi
 				;;
 	esac
 
@@ -167,13 +181,13 @@ state_machine() {
 			input_postgres_params_host
 			;;
 		"postgres_params_user")
-			input_postrgres_params_user
+			input_postgres_params_user
 			;;
 		"postgres_params_source")
 			input_postgres_params_source
 			;;
-		"postgres_params_ssl")
-			input_postgres_params_ssl
+		"postgres_installation_type")
+			input_postgres_installation_type
 			;;
 		"postgres_check_connection")
 			input_postgres_check_connection
