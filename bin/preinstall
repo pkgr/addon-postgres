@@ -1,0 +1,122 @@
+#!/bin/bash
+
+set -e
+
+. "${INSTALLER_DIR}/wizard"
+
+MSG_CONFLICTING_INSTALL="ERROR: It seems like you already have PostgreSQL v10 installed. Please use the existing installation instead and run '$APP_NAME reconfigure'."
+MSG_UNKNOWN_DISTRIBUTION_VERSION="ERROR: the current distribution is not supported by this wizard. Please install PostgreSQL manually and retry."
+
+PGPORT="$(wiz_get "postgres/db_port")"
+PGDATABASE="$(wiz_get "postgres/db_name")"
+
+install_postgres_server() {
+	case $(wiz_fact "osfamily") in
+		"debian")
+			case $(wiz_fact "osversion") in
+				"7")
+					;;
+				"8")
+					;;
+				"9")
+					;;
+				"14.04")
+					;;
+				"16.04")
+					;;
+				"18.04")
+					echo "deb http://apt.postgresql.org/pub/repos/apt/ bionic-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+					wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+					apt-get update -qq
+					DEBIAN_FRONTEND=noninteractive apt-get install postgresql-10 -y
+
+					_configure_postgres_server "/etc/postgresql/10/main"
+					su postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main restart"
+					_configure_database_and_user
+					;;
+				*)
+					echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
+					exit 1
+					;;
+			esac
+			;;
+		"redhat")
+			case $(wiz_fact "osversion") in
+				"7")
+					if wiz_package "postgresql10-server" ; then
+						echo "$MSG_CONFLICTING_INSTALL"
+						exit 1
+					else
+						_ensure_port_available
+						yum install https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-7-x86_64/pgdg-redhat10-10-2.noarch.rpm
+						yum install postgresql10-server postgresql10 -y
+						/usr/pgsql-10/bin/postgresql-10-setup initdb
+
+						_configure_postgres_server "/var/lib/pgsql/10/data"
+						systemctl enable postgresql-10
+						systemctl restart postgresql-10
+						_configure_database_and_user
+					fi
+					;;
+				*)
+					echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
+					exit 1
+					;;
+			esac
+			;;
+		"suse")
+			case $(wiz_fact "osversion") in
+				12)
+					;;
+				*)
+					echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
+					exit 1
+					;;
+			esac
+			;;
+	esac
+}
+
+function _ensure_port_available() {
+	# assume port is free if netstat unavailable
+	if ! which netstat &>/dev/null ; then
+		return 0;
+	fi
+
+	if netstat -tulpn | grep ":$PGPORT" &>/dev/null ; then
+		echo "ERROR: port $PGPORT is already in use. Can't install new PostgreSQL server."
+		exit 1
+	else
+		return 0
+	fi
+}
+
+function _configure_postgres_server() {
+	local base_dir="$1"
+	sed -i "s|#include_dir = 'conf.d'|include_dir = 'conf.d'|" $base_dir/postgresql.conf
+	mkdir -p $base_dir/conf.d
+	echo "port = $PGPORT" > $base_dir/conf.d/custom.conf
+}
+
+function _configure_database_and_user() {
+	local dbname="$PGDATABASE"
+	PGPORT=$PGPORT su postgres -c "createuser --createdb --login --superuser $dbname"
+	PGPORT=$PGPORT su postgres -c "createdb -O $dbname $dbname"
+}
+
+case "$(wiz_get "postgres/autoinstall")" in
+	"skip")
+		echo "Skipping PostgreSQL configuration."
+		;;
+	"install")
+		install_postgres_server
+		;;
+	"reuse")
+		echo "Reusing existing PostgreSQL installation."
+		;;
+	*)
+		echo "Unknown value for postgres/autoinstall"
+		;;
+esac
+
+exit 0
