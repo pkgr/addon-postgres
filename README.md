@@ -19,6 +19,7 @@ Supported distributions:
     export APP_SAFE_NAME="testapp"
     export INSTALLER_DIR="/path/to/pkgr-installer-dir"
     sudo useradd "$APP_NAME"
+    sudo mkdir -p /etc/testapp/conf.d
 
     sudo -E INSTALLER_DEBUG=no WIZ_RECONFIGURE=no DATABASE=/tmp/test1 ./bin/configure
     sudo -E INSTALLER_DEBUG=no WIZ_RECONFIGURE=no DATABASE=/tmp/test1 ./bin/preinstall

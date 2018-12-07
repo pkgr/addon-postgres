@@ -10,9 +10,9 @@ MSG_CONFLICTING_INSTALL="ERROR: It seems like you already have PostgreSQL v10 in
 MSG_UNKNOWN_DISTRIBUTION_VERSION="ERROR: The current distribution is not supported by this wizard. Please install PostgreSQL manually and retry."
 MSG_CONNECTION_KO="ERROR: Connection KO. Aborting postgres installation."
 
-PGPORT="$(wiz_get "postgres/db_port")"
-PGDATABASE="$(wiz_get "postgres/db_name")"
-PGUSER="$(wiz_get "postgres/db_username")"
+PGPORT="$(wiz_get "postgres/db_port" || echo "5432")"
+PGDATABASE="$(wiz_get "postgres/db_name" || echo "$APP_SAFE_NAME")"
+PGUSER="$(wiz_get "postgres/db_username" || echo "$APP_SAFE_NAME")"
 
 install_postgres_server() {
 	local addon_version="$(wiz_get "postgres/addon_version" || echo "v0")"
