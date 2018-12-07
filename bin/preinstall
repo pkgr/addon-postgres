@@ -4,28 +4,54 @@ set -e
 
 . "${INSTALLER_DIR}/wizard"
 
-MSG_CONFLICTING_INSTALL="ERROR: It seems like you already have PostgreSQL v10 installed. Please use the existing installation instead and run '$APP_NAME reconfigure'."
-MSG_UNKNOWN_DISTRIBUTION_VERSION="ERROR: the current distribution is not supported by this wizard. Please install PostgreSQL manually and retry."
+ADDON_VERSION="v1"
+
+MSG_CONFLICTING_INSTALL="ERROR: It seems like you already have PostgreSQL v10 installed. Please run '$APP_NAME reconfigure' and choose to use the existing installation instead."
+MSG_UNKNOWN_DISTRIBUTION_VERSION="ERROR: The current distribution is not supported by this wizard. Please install PostgreSQL manually and retry."
+MSG_CONNECTION_KO="ERROR: Connection KO. Aborting postgres installation."
 
 PGPORT="$(wiz_get "postgres/db_port")"
 PGDATABASE="$(wiz_get "postgres/db_name")"
+PGUSER="$(wiz_get "postgres/db_username")"
 
 install_postgres_server() {
+	local addon_version="$(wiz_get "postgres/addon_version" || echo "v0")"
+
+	if [ "$addon_version" == "$ADDON_VERSION" ]; then
+		echo "INFO: PostgreSQL has already been configured by this addon. Skipping to next step."
+		exit 0
+	fi
+
 	case $(wiz_fact "osfamily") in
 		"debian")
 			case $(wiz_fact "osversion") in
 				"7")
+					codename="wheezy"
 					;;
 				"8")
+					codename="jessie"
 					;;
 				"9")
+					codename="stretch"
 					;;
 				"14.04")
+					codename="trusty"
 					;;
 				"16.04")
+					codename="xenial"
 					;;
 				"18.04")
-					echo "deb http://apt.postgresql.org/pub/repos/apt/ bionic-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+					codename="bionic"
+					;;
+			esac
+
+			if [ "$codename" != "" ]; then
+				if wiz_check_package "postgresql-10" ; then
+					echo "$MSG_CONFLICTING_INSTALL"
+					exit 1
+				else
+					_ensure_port_available
+					echo "deb http://apt.postgresql.org/pub/repos/apt/ ${codename}-pgdg main" > /etc/apt/sources.list.d/pgdg.list
 					wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 					apt-get update -qq
 					DEBIAN_FRONTEND=noninteractive apt-get install postgresql-10 -y
@@ -33,17 +59,16 @@ install_postgres_server() {
 					_configure_postgres_server "/etc/postgresql/10/main"
 					su postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main restart"
 					_configure_database_and_user
-					;;
-				*)
-					echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
-					exit 1
-					;;
-			esac
+				fi
+			else
+				echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
+				exit 1
+			fi
 			;;
 		"redhat")
 			case $(wiz_fact "osversion") in
 				"7")
-					if wiz_package "postgresql10-server" ; then
+					if wiz_check_package "postgresql10-server" ; then
 						echo "$MSG_CONFLICTING_INSTALL"
 						exit 1
 					else
@@ -67,6 +92,19 @@ install_postgres_server() {
 		"suse")
 			case $(wiz_fact "osversion") in
 				12)
+					if wiz_check_package "postgresql10-server" ; then
+						echo "$MSG_CONFLICTING_INSTALL"
+						exit 1
+					else
+						_ensure_port_available
+						zypper addrepo https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-10.repo
+						zypper install postgresql10-server -y
+						su postgres -c "/usr/lib/postgresql10/bin/initdb -D /var/lib/pgsql/10/data"
+
+						_configure_postgres_server "/var/lib/pgsql/10/data"
+						su postgres -c "/usr/lib/postgresql10/bin/pg_ctl -D /var/lib/pgsql/10/data start"
+						_configure_database_and_user
+					fi
 					;;
 				*)
 					echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
@@ -75,6 +113,17 @@ install_postgres_server() {
 			esac
 			;;
 	esac
+}
+
+function _ensure_connection_ok() {
+	local command="select version();"
+	if env -i PGCONNECT_TIMEOUT=5 PGDATABASE="$PGDATABASE" PGUSER="$PGUSER" \
+		su "$PGUSER" -c "psql --no-password --command='$command'" ; then
+		echo "INFO: Connection OK"
+	else
+		echo "$MSG_CONNECTION_KO"
+		exit 1
+	fi
 }
 
 function _ensure_port_available() {
@@ -106,16 +155,20 @@ function _configure_database_and_user() {
 
 case "$(wiz_get "postgres/autoinstall")" in
 	"skip")
-		echo "Skipping PostgreSQL configuration."
+		echo "INFO: autoinstall=skip. Skipping to next step."
 		;;
 	"install")
+		echo "INFO: autoinstall=install. A new PostgreSQL v10 server will be installed locally unless a conflicting installation is found."
 		install_postgres_server
+		wiz_set "postgres/addon_version" "$ADDON_VERSION"
+		_ensure_connection_ok
 		;;
 	"reuse")
-		echo "Reusing existing PostgreSQL installation."
+		echo "INFO: autoinstall=reuse. Skipping to next step."
 		;;
 	*)
-		echo "Unknown value for postgres/autoinstall"
+		echo "ERROR: Unknown value for postgres/autoinstall"
+		exit 1
 		;;
 esac
 
