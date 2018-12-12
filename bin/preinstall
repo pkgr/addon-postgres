@@ -57,7 +57,7 @@ install_postgres_server() {
 					DEBIAN_FRONTEND=noninteractive apt-get install postgresql-10 -y
 
 					_configure_postgres_server "/etc/postgresql/10/main"
-					su postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main restart"
+					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main restart"
 					_configure_database_and_user
 				fi
 			else
@@ -99,10 +99,10 @@ install_postgres_server() {
 						_ensure_port_available
 						zypper addrepo https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-10.repo
 						zypper install postgresql10-server -y
-						su postgres -c "/usr/lib/postgresql10/bin/initdb -D /var/lib/pgsql/10/data"
+						su - postgres -c "/usr/lib/postgresql10/bin/initdb -D /var/lib/pgsql/10/data"
 
 						_configure_postgres_server "/var/lib/pgsql/10/data"
-						su postgres -c "/usr/lib/postgresql10/bin/pg_ctl -D /var/lib/pgsql/10/data start"
+						su - postgres -c "/usr/lib/postgresql10/bin/pg_ctl -D /var/lib/pgsql/10/data start"
 						_configure_database_and_user
 					fi
 					;;
