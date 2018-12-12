@@ -40,11 +40,7 @@ install_postgres_server() {
 			esac
 
 			if [ "$codename" != "" ]; then
-				if wiz_check_package "postgresql-10" ; then
-					echo "$MSG_CONFLICTING_INSTALL"
-					exit 1
-				else
-					_skip_if_identical_addon_version
+				if ! wiz_check_package "postgresql-10" ; then
 					_ensure_port_available
 					echo "deb http://apt.postgresql.org/pub/repos/apt/ ${codename}-pgdg main" > /etc/apt/sources.list.d/pgdg.list
 					wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
@@ -55,8 +51,8 @@ install_postgres_server() {
 					_configure_postgres_server "/etc/postgresql/10/main"
 					sleep 3
 					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main -w -t 10 -l logfile restart"
-					_configure_database_and_user
 				fi
+				_configure_database_and_user
 			else
 				echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
 				exit 1
@@ -65,11 +61,7 @@ install_postgres_server() {
 		"redhat")
 			case $(wiz_fact "osversion") in
 				"7")
-					if wiz_check_package "postgresql10-server" ; then
-						echo "$MSG_CONFLICTING_INSTALL"
-						exit 1
-					else
-						_skip_if_identical_addon_version
+					if ! wiz_check_package "postgresql10-server" ; then
 						_ensure_port_available
 						yum install https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-7-x86_64/pgdg-redhat10-10-2.noarch.rpm
 						yum install postgresql10-server postgresql10 -y
@@ -78,8 +70,8 @@ install_postgres_server() {
 						_configure_postgres_server "/var/lib/pgsql/10/data"
 						systemctl enable postgresql-10
 						systemctl restart postgresql-10
-						_configure_database_and_user
 					fi
+					_configure_database_and_user
 					;;
 				*)
 					echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
@@ -90,11 +82,7 @@ install_postgres_server() {
 		"suse")
 			case $(wiz_fact "osversion") in
 				12)
-					if wiz_check_package "postgresql10-server" ; then
-						echo "$MSG_CONFLICTING_INSTALL"
-						exit 1
-					else
-						_skip_if_identical_addon_version
+					if ! wiz_check_package "postgresql10-server" ; then
 						_ensure_port_available
 						zypper addrepo https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-10.repo
 						zypper install postgresql10-server -y
@@ -102,8 +90,8 @@ install_postgres_server() {
 
 						_configure_postgres_server "/var/lib/pgsql/10/data"
 						su - postgres -c "/usr/lib/postgresql10/bin/pg_ctl -D /var/lib/pgsql/10/data start"
-						_configure_database_and_user
 					fi
+					_configure_database_and_user
 					;;
 				*)
 					echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
