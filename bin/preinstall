@@ -56,8 +56,9 @@ install_postgres_server() {
 					apt-get update -qq
 					DEBIAN_FRONTEND=noninteractive apt-get install postgresql-10 -y
 
+					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main stop || true"
 					_configure_postgres_server "/etc/postgresql/10/main"
-					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main restart"
+					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main -l logfile restart"
 					_configure_database_and_user
 				fi
 			else
@@ -145,6 +146,7 @@ function _configure_postgres_server() {
 	sed -i "s|#include_dir = 'conf.d'|include_dir = 'conf.d'|" $base_dir/postgresql.conf
 	mkdir -p $base_dir/conf.d
 	echo "port = $PGPORT" > $base_dir/conf.d/custom.conf
+	chown -R postgres:postgres $base_dir/conf.d
 }
 
 function _configure_database_and_user() {
