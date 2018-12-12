@@ -8,20 +8,15 @@ ADDON_VERSION="v1"
 
 MSG_CONFLICTING_INSTALL="ERROR: It seems like you already have PostgreSQL v10 installed. Please run '$APP_NAME reconfigure' and choose to use the existing installation instead."
 MSG_UNKNOWN_DISTRIBUTION_VERSION="ERROR: The current distribution is not supported by this wizard. Please install PostgreSQL manually and retry."
-MSG_CONNECTION_KO="ERROR: Connection KO. Aborting postgres installation."
+MSG_CONNECTION_KO="ERROR: Connection KO. Aborting postgres installation. You should check the wizard configuration in /etc/$APP_NAME/installer.dat"
 
+PGHOST="$(wiz_get "postgres/db_host" || echo "127.0.0.1")"
 PGPORT="$(wiz_get "postgres/db_port" || echo "5432")"
 PGDATABASE="$(wiz_get "postgres/db_name" || echo "$APP_SAFE_NAME")"
 PGUSER="$(wiz_get "postgres/db_username" || echo "$APP_SAFE_NAME")"
+PGPASSWORD="$(wiz_get "postgres/db_password" || echo "")"
 
 install_postgres_server() {
-	local addon_version="$(wiz_get "postgres/addon_version" || echo "v0")"
-
-	if [ "$addon_version" == "$ADDON_VERSION" ]; then
-		echo "INFO: PostgreSQL has already been configured by this addon. Skipping to next step."
-		exit 0
-	fi
-
 	case $(wiz_fact "osfamily") in
 		"debian")
 			case $(wiz_fact "osversion") in
@@ -46,21 +41,19 @@ install_postgres_server() {
 			esac
 
 			if [ "$codename" != "" ]; then
-				if wiz_check_package "postgresql-10" ; then
-					echo "$MSG_CONFLICTING_INSTALL"
-					exit 1
-				else
+				if ! wiz_check_package "postgresql-10" ; then
 					_ensure_port_available
 					echo "deb http://apt.postgresql.org/pub/repos/apt/ ${codename}-pgdg main" > /etc/apt/sources.list.d/pgdg.list
 					wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 					apt-get update -qq
 					DEBIAN_FRONTEND=noninteractive apt-get install postgresql-10 -y
 
-					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main stop || true"
+					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main -w -t 10 stop || true"
 					_configure_postgres_server "/etc/postgresql/10/main"
-					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main -l logfile restart"
-					_configure_database_and_user
+					sleep 3
+					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main -w -t 10 -l logfile restart"
 				fi
+				_configure_database_and_user
 			else
 				echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
 				exit 1
@@ -69,10 +62,7 @@ install_postgres_server() {
 		"redhat")
 			case $(wiz_fact "osversion") in
 				"7")
-					if wiz_check_package "postgresql10-server" ; then
-						echo "$MSG_CONFLICTING_INSTALL"
-						exit 1
-					else
+					if ! wiz_check_package "postgresql10-server" ; then
 						_ensure_port_available
 						yum install https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-7-x86_64/pgdg-redhat10-10-2.noarch.rpm
 						yum install postgresql10-server postgresql10 -y
@@ -81,8 +71,8 @@ install_postgres_server() {
 						_configure_postgres_server "/var/lib/pgsql/10/data"
 						systemctl enable postgresql-10
 						systemctl restart postgresql-10
-						_configure_database_and_user
 					fi
+					_configure_database_and_user
 					;;
 				*)
 					echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
@@ -93,10 +83,7 @@ install_postgres_server() {
 		"suse")
 			case $(wiz_fact "osversion") in
 				12)
-					if wiz_check_package "postgresql10-server" ; then
-						echo "$MSG_CONFLICTING_INSTALL"
-						exit 1
-					else
+					if ! wiz_check_package "postgresql10-server" ; then
 						_ensure_port_available
 						zypper addrepo https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-10.repo
 						zypper install postgresql10-server -y
@@ -104,8 +91,8 @@ install_postgres_server() {
 
 						_configure_postgres_server "/var/lib/pgsql/10/data"
 						su - postgres -c "/usr/lib/postgresql10/bin/pg_ctl -D /var/lib/pgsql/10/data start"
-						_configure_database_and_user
 					fi
+					_configure_database_and_user
 					;;
 				*)
 					echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
@@ -116,10 +103,19 @@ install_postgres_server() {
 	esac
 }
 
+function _skip_if_identical_addon_version() {
+	local addon_version="$(wiz_get "postgres/addon_version" || echo "v0")"
+
+	if [ "$addon_version" == "$ADDON_VERSION" ]; then
+		echo "INFO: PostgreSQL has already been configured by this addon. Skipping to next step."
+		_ensure_connection_ok
+		exit 0
+	fi
+}
+
 function _ensure_connection_ok() {
-	local command="select version();"
-	if env -i PGCONNECT_TIMEOUT=5 PGDATABASE="$PGDATABASE" PGUSER="$PGUSER" \
-		su "$PGUSER" -c "psql --no-password --command='$command'" ; then
+	if env -i PGCONNECT_TIMEOUT=5 PGPORT="$PGPORT" PGHOST="$PGHOST" PGDATABASE="$PGDATABASE" PGUSER="$PGUSER" PGPASSWORD="$PGPASSWORD" \
+		psql --no-readline --no-password -c "select 1;" ; then
 		echo "INFO: Connection OK"
 	else
 		echo "$MSG_CONNECTION_KO"
@@ -150,9 +146,14 @@ function _configure_postgres_server() {
 }
 
 function _configure_database_and_user() {
-	local dbname="$PGDATABASE"
-	PGPORT=$PGPORT su postgres -c "createuser --createdb --login --superuser $dbname"
-	PGPORT=$PGPORT su postgres -c "createdb -O $dbname $dbname"
+	if su - postgres -c "createuser -p $PGPORT --createdb --login --superuser $PGUSER 2>&1 || true" | grep -q "already exists" ; then
+		echo "INFO: user $PGUSER already exists"
+	fi
+	su - postgres -c "psql -p $PGPORT --no-readline --no-password -c \"alter user $PGUSER with encrypted password '$PGPASSWORD';\""
+
+	if su - postgres -c "createdb -p $PGPORT -O $PGUSER $PGDATABASE 2>&1 || true" | grep -q "already exists" ; then
+		echo "INFO: database $PGDATABASE already exists"
+	fi
 }
 
 case "$(wiz_get "postgres/autoinstall")" in

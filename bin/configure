@@ -29,8 +29,8 @@ input_postgres_installation_type() {
 				wiz_get_or_set "postgres/db_host" "127.0.0.1"
 				wiz_get_or_set "postgres/db_port" "45432"
 				wiz_get_or_set "postgres/db_name" "${APP_SAFE_NAME}"
-				wiz_get_or_set "postgres/db_username" "${APP_SAFE_NAME}"
-				wiz_get_or_set "postgres/db_password" ""
+				wiz_get_or_set "postgres/db_username" "${APP_SAFE_NAME:0:16}"
+				wiz_get_or_set "postgres/db_password" "$(wiz_random_password 32)"
 				STATE="postgres_check_connection"
 				;;
 			"reuse")
@@ -146,17 +146,6 @@ function _postgres_check_connection() {
 				return 0;
 				;;
 			"reuse")
-				if [ "$PGHOST" == "localhost" -o "$PGHOST" == "127.0.0.1" ]; then
-					echo "Trying to connect through ident-based authentication..."
-					if env -i PGCONNECT_TIMEOUT=5 PGDATABASE="$PGDATABASE" PGUSER="$PGUSER" \
-						su "$PGUSER" -c "psql --no-password --command='$command'" ; then
-						echo "Connection OK"
-						return 0;
-					else
-						echo "Connection KO"
-					fi
-				fi
-
 				echo "Trying to connect through password-based authentication..."
 				if psql --no-password --command="$command" ; then
 					echo "Connection OK"
