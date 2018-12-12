@@ -118,8 +118,8 @@ install_postgres_server() {
 
 function _ensure_connection_ok() {
 	local command="select version();"
-	if env -i PGCONNECT_TIMEOUT=5 PGDATABASE="$PGDATABASE" PGUSER="$PGUSER" \
-		su "$PGUSER" -c "psql --no-password --command='$command'" ; then
+	if env -i PGCONNECT_TIMEOUT=5 PGDATABASE="$PGDATABASE" PGUSER="$PGUSER" PGPASSWORD="$PGPASSWORD" \
+		psql --no-password --command="$command" ; then
 		echo "INFO: Connection OK"
 	else
 		echo "$MSG_CONNECTION_KO"
@@ -150,9 +150,9 @@ function _configure_postgres_server() {
 }
 
 function _configure_database_and_user() {
-	local dbname="$PGDATABASE"
-	PGPORT=$PGPORT su postgres -c "createuser --createdb --login --superuser $dbname"
-	PGPORT=$PGPORT su postgres -c "createdb -O $dbname $dbname"
+	env -i PGPORT=$PGPORT su postgres -c "createuser --createdb --login --superuser $PGUSER"
+	env -i PGPORT=$PGPORT su postgres -c "createdb -O $PGUSER $PGDATABASE"
+	env -i PGPORT=$PGPORT su postgres -c "psql -c \"alter user $PGUSER with encrypted password '$PGPASSWORD';\""
 }
 
 case "$(wiz_get "postgres/autoinstall")" in
