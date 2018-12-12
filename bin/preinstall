@@ -13,15 +13,9 @@ MSG_CONNECTION_KO="ERROR: Connection KO. Aborting postgres installation."
 PGPORT="$(wiz_get "postgres/db_port" || echo "5432")"
 PGDATABASE="$(wiz_get "postgres/db_name" || echo "$APP_SAFE_NAME")"
 PGUSER="$(wiz_get "postgres/db_username" || echo "$APP_SAFE_NAME")"
+PGPASSWORD="$(wiz_get "postgres/db_password" || echo "")"
 
 install_postgres_server() {
-	local addon_version="$(wiz_get "postgres/addon_version" || echo "v0")"
-
-	if [ "$addon_version" == "$ADDON_VERSION" ]; then
-		echo "INFO: PostgreSQL has already been configured by this addon. Skipping to next step."
-		exit 0
-	fi
-
 	case $(wiz_fact "osfamily") in
 		"debian")
 			case $(wiz_fact "osversion") in
@@ -50,15 +44,17 @@ install_postgres_server() {
 					echo "$MSG_CONFLICTING_INSTALL"
 					exit 1
 				else
+					_skip_if_identical_addon_version
 					_ensure_port_available
 					echo "deb http://apt.postgresql.org/pub/repos/apt/ ${codename}-pgdg main" > /etc/apt/sources.list.d/pgdg.list
 					wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 					apt-get update -qq
 					DEBIAN_FRONTEND=noninteractive apt-get install postgresql-10 -y
 
-					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main stop || true"
+					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main -w -t 10 stop || true"
 					_configure_postgres_server "/etc/postgresql/10/main"
-					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main -l logfile restart"
+					sleep 3
+					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main -w -t 10 -l logfile restart"
 					_configure_database_and_user
 				fi
 			else
@@ -73,6 +69,7 @@ install_postgres_server() {
 						echo "$MSG_CONFLICTING_INSTALL"
 						exit 1
 					else
+						_skip_if_identical_addon_version
 						_ensure_port_available
 						yum install https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-7-x86_64/pgdg-redhat10-10-2.noarch.rpm
 						yum install postgresql10-server postgresql10 -y
@@ -97,6 +94,7 @@ install_postgres_server() {
 						echo "$MSG_CONFLICTING_INSTALL"
 						exit 1
 					else
+						_skip_if_identical_addon_version
 						_ensure_port_available
 						zypper addrepo https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-10.repo
 						zypper install postgresql10-server -y
@@ -114,6 +112,16 @@ install_postgres_server() {
 			esac
 			;;
 	esac
+}
+
+function _skip_if_identical_addon_version() {
+	local addon_version="$(wiz_get "postgres/addon_version" || echo "v0")"
+
+	if [ "$addon_version" == "$ADDON_VERSION" ]; then
+		echo "INFO: PostgreSQL has already been configured by this addon. Skipping to next step."
+		_ensure_connection_ok
+		exit 0
+	fi
 }
 
 function _ensure_connection_ok() {
