@@ -3,7 +3,6 @@
 set -e
 
 . "${INSTALLER_DIR}/wizard"
-set -x
 
 ADDON_VERSION="v1"
 
