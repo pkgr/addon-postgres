@@ -84,8 +84,9 @@ install_postgres_server() {
 			case $(wiz_fact "osversion") in
 				12)
 					if ! wiz_check_package "postgresql10-server" ; then
-						_ensure_port_available
-						zypper addrepo -y https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-10.repo
+						 _ensure_port_available
+						rpm --import https://download.postgresql.org/pub/repos/zypp/10/suse/sles-12-x86_64/repodata/repomd.xml.key
+						zypper addrepo https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-10.repo
 						zypper install -y postgresql10-server
 						su - postgres -c "/usr/lib/postgresql10/bin/initdb -D /var/lib/pgsql/10/data"
 
