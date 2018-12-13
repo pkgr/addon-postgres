@@ -64,8 +64,8 @@ install_postgres_server() {
 				"7")
 					if ! wiz_check_package "postgresql10-server" ; then
 						_ensure_port_available
-						yum install https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-7-x86_64/pgdg-redhat10-10-2.noarch.rpm
-						yum install postgresql10-server postgresql10 -y
+						yum install -y https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-7-x86_64/pgdg-redhat10-10-2.noarch.rpm
+						yum install -y postgresql10-server postgresql10
 						/usr/pgsql-10/bin/postgresql-10-setup initdb
 
 						_configure_postgres_server "/var/lib/pgsql/10/data"
