@@ -114,6 +114,7 @@ function _skip_if_identical_addon_version() {
 }
 
 function _ensure_connection_ok() {
+	set -x
 	local command="select version();"
 	if env -i PGCONNECT_TIMEOUT=5 PGPORT="$PGPORT" PGHOST="$PGHOST" PGDATABASE="$PGDATABASE" PGUSER="$PGUSER" PGPASSWORD="$PGPASSWORD" \
 		psql --no-readline --no-password --command="$command" ; then
