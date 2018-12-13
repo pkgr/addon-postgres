@@ -88,10 +88,11 @@ install_postgres_server() {
 						rpm --import https://download.postgresql.org/pub/repos/zypp/10/suse/sles-12-x86_64/repodata/repomd.xml.key
 						zypper addrepo https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-10.repo
 						zypper install -y postgresql10-server
-						su - postgres -c "/usr/lib/postgresql10/bin/initdb -D /var/lib/pgsql/10/data"
 
+						/usr/pgsql-10/bin/postgresql-10-setup initdb
 						_configure_postgres_server "/var/lib/pgsql/10/data"
-						su - postgres -c "/usr/lib/postgresql10/bin/pg_ctl -D /var/lib/pgsql/10/data start"
+						systemctl enable postgresql-10
+						systemctl restart postgresql-10
 					fi
 					_configure_database_and_user
 					;;
