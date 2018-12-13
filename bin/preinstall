@@ -163,6 +163,7 @@ case "$(wiz_get "postgres/autoinstall")" in
 		;;
 	"install")
 		echo "INFO: autoinstall=install. A new PostgreSQL v10 server will be installed locally unless a conflicting installation is found."
+		set -x
 		install_postgres_server
 		wiz_set "postgres/addon_version" "$ADDON_VERSION"
 		_ensure_connection_ok
