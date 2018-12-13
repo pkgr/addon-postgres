@@ -149,8 +149,8 @@ function _configure_postgres_server() {
 function _configure_database_and_user() {
 	if su - postgres -c "createuser -p $PGPORT --createdb --login --superuser $PGUSER 2>&1 || true" | grep -q "already exists" ; then
 		echo "INFO: user $PGUSER already exists"
-		su - postgres -c "psql -p $PGPORT -c \"alter user $PGUSER with encrypted password '$PGPASSWORD';\""
 	fi
+	su - postgres -c "psql -p $PGPORT -c \"alter user $PGUSER with encrypted password '$PGPASSWORD';\""
 
 	if su - postgres -c "createdb -p $PGPORT -O $PGUSER $PGDATABASE 2>&1 || true" | grep -q "already exists" ; then
 		echo "INFO: database $PGDATABASE already exists"
