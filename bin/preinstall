@@ -114,7 +114,6 @@ function _skip_if_identical_addon_version() {
 }
 
 function _ensure_connection_ok() {
-	set -x
 	if env -i PGCONNECT_TIMEOUT=5 PGPORT="$PGPORT" PGHOST="$PGHOST" PGDATABASE="$PGDATABASE" PGUSER="$PGUSER" PGPASSWORD="$PGPASSWORD" \
 		psql --no-readline --no-password -c "select 1;" ; then
 		echo "INFO: Connection OK"
@@ -163,7 +162,6 @@ case "$(wiz_get "postgres/autoinstall")" in
 		;;
 	"install")
 		echo "INFO: autoinstall=install. A new PostgreSQL v10 server will be installed locally unless a conflicting installation is found."
-		set -x
 		install_postgres_server
 		wiz_set "postgres/addon_version" "$ADDON_VERSION"
 		_ensure_connection_ok
