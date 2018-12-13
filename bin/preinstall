@@ -8,7 +8,7 @@ ADDON_VERSION="v1"
 
 MSG_CONFLICTING_INSTALL="ERROR: It seems like you already have PostgreSQL v10 installed. Please run '$APP_NAME reconfigure' and choose to use the existing installation instead."
 MSG_UNKNOWN_DISTRIBUTION_VERSION="ERROR: The current distribution is not supported by this wizard. Please install PostgreSQL manually and retry."
-MSG_CONNECTION_KO="ERROR: Connection KO. Aborting postgres installation."
+MSG_CONNECTION_KO="ERROR: Connection KO. Aborting postgres installation. You should check the wizard configuration in /etc/$APP_NAME/installer.dat"
 
 PGHOST="$(wiz_get "postgres/db_host" || echo "127.0.0.1")"
 PGPORT="$(wiz_get "postgres/db_port" || echo "5432")"
@@ -149,7 +149,6 @@ function _configure_postgres_server() {
 function _configure_database_and_user() {
 	if su - postgres -c "createuser -p $PGPORT --createdb --login --superuser $PGUSER 2>&1 || true" | grep -q "already exists" ; then
 		echo "INFO: user $PGUSER already exists"
-	else
 		su - postgres -c "psql -p $PGPORT -c \"alter user $PGUSER with encrypted password '$PGPASSWORD';\""
 	fi
 
