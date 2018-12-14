@@ -123,7 +123,7 @@ function _error_if_conflicting_install() {
 }
 
 function _ensure_connection_ok() {
-	print "INFO: Checking connection to PostgreSQL server... "
+	echo -n "INFO: Checking connection to PostgreSQL server... "
 	if env -i PATH="$PATH" PGCONNECT_TIMEOUT=5 PGPORT="$PGPORT" PGHOST="$PGHOST" PGDATABASE="$PGDATABASE" PGUSER="$PGUSER" PGPASSWORD="$PGPASSWORD" \
 		psql --no-readline --no-password -c "select 1;" ; then
 		echo "OK"
@@ -135,7 +135,7 @@ function _ensure_connection_ok() {
 }
 
 function _ensure_port_available() {
-	print "INFO: Checking whether port $PGPORT is available... "
+	echo -n "INFO: Checking whether port $PGPORT is available... "
 	# assume port is free if netstat unavailable
 	if ! which netstat &>/dev/null ; then
 		echo "OK (netstat not found)"
