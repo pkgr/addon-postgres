@@ -44,7 +44,9 @@ install_postgres_server() {
 				if ! wiz_check_package "postgresql-10" ; then
 					_ensure_port_available
 					echo "deb http://apt.postgresql.org/pub/repos/apt/ ${codename}-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+					echo -n "INFO: Adding repository signing key from PostgreSQL... "
 					wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+					echo "INFO: Installing PostgreSQL v10..."
 					apt-get update -qq
 					DEBIAN_FRONTEND=noninteractive apt-get install postgresql-10 -y
 
@@ -66,6 +68,7 @@ install_postgres_server() {
 				"7")
 					if ! wiz_check_package "postgresql10-server" ; then
 						_ensure_port_available
+						echo "INFO: Installing PostgreSQL v10..."
 						yum install -y https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-7-x86_64/pgdg-redhat10-10-2.noarch.rpm
 						yum install -y postgresql10-server postgresql10
 						PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-10/bin/postgresql-10-setup initdb
@@ -90,6 +93,7 @@ install_postgres_server() {
 					if ! wiz_check_package "postgresql10-server" ; then
 						 _ensure_port_available
 						rpm --import https://download.postgresql.org/pub/repos/zypp/10/suse/sles-12-x86_64/repodata/repomd.xml.key
+						echo "INFO: Installing PostgreSQL v10..."
 						zypper addrepo https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-10.repo
 						zypper install -y postgresql10-server
 
