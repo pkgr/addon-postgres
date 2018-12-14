@@ -52,6 +52,9 @@ install_postgres_server() {
 					_configure_postgres_server "/etc/postgresql/10/main"
 					sleep 3
 					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main -w -t 10 -l logfile restart"
+				else
+					echo "$MSG_CONFLICTING_INSTALL"
+					exit 1
 				fi
 				_configure_database_and_user
 			else
@@ -71,6 +74,9 @@ install_postgres_server() {
 						_configure_postgres_server "/var/lib/pgsql/10/data"
 						systemctl enable postgresql-10
 						systemctl restart postgresql-10
+					else
+						echo "$MSG_CONFLICTING_INSTALL"
+						exit 1
 					fi
 					_configure_database_and_user
 					;;
@@ -93,6 +99,9 @@ install_postgres_server() {
 						_configure_postgres_server "/var/lib/pgsql/10/data"
 						systemctl enable postgresql-10
 						systemctl restart postgresql-10
+					else
+						echo "$MSG_CONFLICTING_INSTALL"
+						exit 1
 					fi
 					_configure_database_and_user
 					;;
