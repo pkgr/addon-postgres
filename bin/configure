@@ -136,7 +136,7 @@ function _postgres_check_connection() {
 	export PGUSER="$(wiz_get "postgres/db_username")"
 	export PGDATABASE="$(wiz_get "postgres/db_name")"
 	export PGCONNECT_TIMEOUT=5
-	local command="select version();"
+	local command="select 1;"
 
 	case "$(wiz_get "postgres/autoinstall")" in
 			"skip")
