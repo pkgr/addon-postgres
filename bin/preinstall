@@ -53,8 +53,7 @@ install_postgres_server() {
 					sleep 3
 					su - postgres -c "/usr/lib/postgresql/10/bin/pg_ctl -D /var/lib/postgresql/10/main -w -t 10 -l logfile restart"
 				else
-					echo "$MSG_CONFLICTING_INSTALL"
-					exit 1
+					_error_if_conflicting_install
 				fi
 				_configure_database_and_user
 			else
@@ -75,8 +74,7 @@ install_postgres_server() {
 						systemctl enable postgresql-10
 						systemctl restart postgresql-10
 					else
-						echo "$MSG_CONFLICTING_INSTALL"
-						exit 1
+						_error_if_conflicting_install
 					fi
 					_configure_database_and_user
 					;;
@@ -100,8 +98,7 @@ install_postgres_server() {
 						systemctl enable postgresql-10
 						systemctl restart postgresql-10
 					else
-						echo "$MSG_CONFLICTING_INSTALL"
-						exit 1
+						_error_if_conflicting_install
 					fi
 					_configure_database_and_user
 					;;
@@ -114,36 +111,43 @@ install_postgres_server() {
 	esac
 }
 
-function _skip_if_identical_addon_version() {
+function _error_if_conflicting_install() {
 	local addon_version="$(wiz_get "postgres/addon_version" || echo "v0")"
 
 	if [ "$addon_version" == "$ADDON_VERSION" ]; then
-		echo "INFO: PostgreSQL has already been configured by this addon. Skipping to next step."
-		_ensure_connection_ok
-		exit 0
+		echo "INFO: PostgreSQL server has already been configured by this addon."
+	else
+		echo "$MSG_CONFLICTING_INSTALL"
+		exit 1
 	fi
 }
 
 function _ensure_connection_ok() {
+	print "INFO: Checking connection to PostgreSQL server... "
 	if env -i PATH="$PATH" PGCONNECT_TIMEOUT=5 PGPORT="$PGPORT" PGHOST="$PGHOST" PGDATABASE="$PGDATABASE" PGUSER="$PGUSER" PGPASSWORD="$PGPASSWORD" \
 		psql --no-readline --no-password -c "select 1;" ; then
-		echo "INFO: Connection OK"
+		echo "OK"
 	else
+		echo "KO"
 		echo "$MSG_CONNECTION_KO"
 		exit 1
 	fi
 }
 
 function _ensure_port_available() {
+	print "INFO: Checking whether port $PGPORT is available... "
 	# assume port is free if netstat unavailable
 	if ! which netstat &>/dev/null ; then
+		echo "OK (netstat not found)"
 		return 0;
 	fi
 
 	if netstat -tulpn | grep ":$PGPORT" &>/dev/null ; then
+		echo "KO"
 		echo "ERROR: port $PGPORT is already in use. Can't install new PostgreSQL server."
 		exit 1
 	else
+		echo "OK"
 		return 0
 	fi
 }
