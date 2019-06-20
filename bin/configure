@@ -148,7 +148,12 @@ function _postgres_check_connection() {
 				;;
 			"reuse")
 				echo "Trying to connect through password-based authentication..."
-				if psql --no-password --command="$command" ; then
+
+				# return early if psql not installed
+				if ! [ -x "$(command -v psql)" ]; then
+					echo "psql command not present. Skipping check."
+					return 0;
+				elif psql --no-password --command="$command" ; then
 					echo "Connection OK"
 					return 0;
 				else
