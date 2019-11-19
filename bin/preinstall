@@ -161,10 +161,7 @@ function _ensure_port_available() {
 
 function _configure_postgres_server() {
 	local base_dir="$1"
-	# debian
-	sed -i "s|#include_dir = 'conf.d'|include_dir = 'conf.d'|" $base_dir/postgresql.conf
-	# centos7
-	sed -i "s|#include_dir = ''|include_dir = 'conf.d'|" $base_dir/postgresql.conf
+	sed -i "s|^#include_dir = .*|include_dir = 'conf.d'|" $base_dir/postgresql.conf
 	mkdir -p $base_dir/conf.d
 	echo "port = $PGPORT" > $base_dir/conf.d/custom.conf
 	chown -R postgres:postgres $base_dir/conf.d
