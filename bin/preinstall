@@ -68,7 +68,7 @@ install_postgres_server() {
 			;;
 		"redhat")
 			case $(wiz_fact "osversion") in
-				"7")
+				7*)
 					if ! wiz_check_package "postgresql10-server" ; then
 						_ensure_port_available
 						echo "INFO: Installing PostgreSQL v10..."
@@ -84,7 +84,7 @@ install_postgres_server() {
 					fi
 					_configure_database_and_user
 					;;
-				"8")
+				8*)
 					if ! wiz_check_package "postgresql10-server" ; then
 						_ensure_port_available
 						set -x
