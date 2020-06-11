@@ -41,12 +41,15 @@ install_postgres_server() {
 				"18.04")
 					codename="bionic"
 					;;
+				"20.04")
+					codename="focal"
+					;;
 			esac
 
 			if [ "$codename" != "" ]; then
 				if ! wiz_check_package "postgresql-10" ; then
 					_ensure_port_available
-					echo "deb http://apt.postgresql.org/pub/repos/apt/ ${codename}-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+					echo "deb https://apt.postgresql.org/pub/repos/apt/ ${codename}-pgdg main" > /etc/apt/sources.list.d/pgdg.list
 					echo -n "INFO: Adding repository signing key from PostgreSQL... "
 					wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 					echo "INFO: Installing PostgreSQL v10..."
