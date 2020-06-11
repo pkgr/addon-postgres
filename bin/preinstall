@@ -42,7 +42,7 @@ install_postgres_server() {
 					codename="bionic"
 					;;
 				"20.04")
-					codename="bullseye"
+					codename="focal"
 					;;
 			esac
 
