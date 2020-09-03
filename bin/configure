@@ -5,15 +5,6 @@ set -e
 . "${INSTALLER_DIR}/wizard"
 
 input_start() {
-	local already_setup_with_mysql_addon="$(wiz_get "mysql/autoinstall" || echo "")"
-
-	if [ "$already_setup_with_mysql_addon" != "" ]; then
-		echo "Installation is already using MySQL, skipping postgres addon."
-		wiz_set "postgres/autoinstall" "skip"
-		STATE="done"
-		return 0;
-	fi
-
 	STATE="postgres_installation_type"
 }
 
