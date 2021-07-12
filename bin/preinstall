@@ -77,7 +77,7 @@ install_postgres_server() {
 					if ! wiz_check_package "postgresql13-server" ; then
 						_ensure_port_available
 						echo "INFO: Installing PostgreSQL v13..."
-						yum install -y https://download.postgresql.org/pub/repos/yum/13/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+						yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
 						yum install -y postgresql13-server postgresql13
 						PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
 
@@ -94,7 +94,7 @@ install_postgres_server() {
 						_ensure_port_available
 						set -x
 						echo "INFO: Installing PostgreSQL v13..."
-						dnf install -y https://download.postgresql.org/pub/repos/yum/13/redhat/rhel-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+						dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
 						dnf -qy module disable postgresql
 						dnf install -y postgresql13 postgresql13-server
 						PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
@@ -118,7 +118,7 @@ install_postgres_server() {
 				12)
 					if ! wiz_check_package "postgresql13-server" ; then
 						 _ensure_port_available
-						rpm --import https://download.postgresql.org/pub/repos/zypp/13/suse/sles-12-x86_64/repodata/repomd.xml.key
+						# rpm --import https://download.postgresql.org/pub/repos/zypp/13/suse/sles-12-x86_64/repodata/repomd.xml.key
 						echo "INFO: Installing PostgreSQL v13..."
 						zypper addrepo https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-13.repo
 						zypper install -y postgresql13-server
