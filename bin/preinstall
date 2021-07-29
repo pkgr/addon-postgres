@@ -92,7 +92,7 @@ install_postgres_server() {
 						_ensure_port_available
 						set -x
 						echo "INFO: Installing PostgreSQL v10..."
-						dnf install -y https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+						dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
 						dnf -qy module disable postgresql
 						dnf install -y postgresql10 postgresql10-server
 						PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-10/bin/postgresql-10-setup initdb
