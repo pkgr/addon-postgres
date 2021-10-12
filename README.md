@@ -2,7 +2,7 @@
 
 PostgreSQL addon for pkgr.
 
-If autoinstall mode is selected, it will attempt to setup a PostgreSQL v10 cluster, using the packages from https://www.postgresql.org/download/linux/.
+If autoinstall mode is selected, it will attempt to setup a PostgreSQL v13 cluster, using the packages from https://www.postgresql.org/download/linux/.
 
 Supported distributions:
 
