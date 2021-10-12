@@ -6,10 +6,10 @@ If autoinstall mode is selected, it will attempt to setup a PostgreSQL v10 clust
 
 Supported distributions:
 
-* SLES12
-* Enterprise Linux 7
-* Ubuntu 14.04, 16.04, 18.04
-* Debian 7, 8, 9
+- SLES12
+- Enterprise Linux 7, Enterprise Linux 7
+- Ubuntu 14.04, 16.04, 18.04, 20.04
+- Debian 7, 8, 9, 10
 
 ## Development
 

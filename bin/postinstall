@@ -4,7 +4,7 @@ set -e
 
 . "${INSTALLER_DIR}/wizard"
 
-OUTPUT="/etc/${APP_NAME}/conf.d/00_addon_postgres"
+CONF_FILE="/etc/${APP_NAME}/conf.d/00_addon_postgres"
 
 function generate_database_template() {
 	PGPASSWORD="$(wiz_get "postgres/db_password")"
@@ -15,8 +15,8 @@ function generate_database_template() {
 
 	local encoded_password="$(wiz_urlencode "$PGPASSWORD")"
 
-	echo "export DATABASE_URL=\"postgres://${PGUSER}:${encoded_password}@${PGHOST}:${PGPORT}/${PGDATABASE}\"" > "$OUTPUT"
-	chown "${APP_USER}.${APP_GROUP}" "$OUTPUT"
+	echo "export DATABASE_URL=\"postgres://${PGUSER}:${encoded_password}@${PGHOST}:${PGPORT}/${PGDATABASE}\"" > "$CONF_FILE"
+	chown "${APP_USER}.${APP_GROUP}" "$CONF_FILE"
 }
 
 case "$(wiz_get "postgres/autoinstall")" in
