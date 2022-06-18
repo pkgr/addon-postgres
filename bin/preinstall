@@ -49,6 +49,9 @@ install_postgres_server() {
 				"20.04")
 					codename="focal"
 					;;
+				"22.04")
+					codename="jammy"
+					;;
 			esac
 
 			if [ "$codename" != "" ]; then
