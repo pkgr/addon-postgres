@@ -121,7 +121,7 @@ install_postgres_server() {
 			;;
 		"suse")
 			case $(wiz_fact "osversion") in
-				12)
+				12*)
 					if ! wiz_check_package "postgresql13-server" ; then
 						 _ensure_port_available
 						# rpm --import https://download.postgresql.org/pub/repos/zypp/13/suse/sles-12-x86_64/repodata/repomd.xml.key
