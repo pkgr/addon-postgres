@@ -127,7 +127,7 @@ install_postgres_server() {
 						# rpm --import https://download.postgresql.org/pub/repos/zypp/13/suse/sles-12-x86_64/repodata/repomd.xml.key
 						echo "INFO: Installing PostgreSQL v13..."
 						zypper addrepo https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-13.repo
-						zypper install -y postgresql13-server
+						zypper install --repo pgdg-13 -y postgresql13-server
 
 						PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
 						_configure_postgres_server "/var/lib/pgsql/13/data"
