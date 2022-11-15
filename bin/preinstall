@@ -122,27 +122,31 @@ install_postgres_server() {
 		"suse")
 			case $(wiz_fact "osversion") in
 				12*)
-					if ! wiz_check_package "postgresql13-server" ; then
-						 _ensure_port_available
-						# rpm --import https://download.postgresql.org/pub/repos/zypp/13/suse/sles-12-x86_64/repodata/repomd.xml.key
-						echo "INFO: Installing PostgreSQL v13..."
-						zypper addrepo https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-13.repo
-						zypper install --repo pgdg-13 -y postgresql13-server
-
-						PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
-						_configure_postgres_server "/var/lib/pgsql/13/data"
-						systemctl enable postgresql-13
-						systemctl restart postgresql-13
-					else
-						_error_if_conflicting_install
-					fi
-					_configure_database_and_user
+					repo_url="https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-13.repo"
+					;;
+				15*)
+					repo_url="https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-15-pg13.repo"
 					;;
 				*)
 					echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
 					exit 1
 					;;
 			esac
+
+			if ! wiz_check_package "postgresql13-server" ; then
+				 _ensure_port_available
+				echo "INFO: Installing PostgreSQL v13..."
+				zypper addrepo "$repo_url"
+				zypper install --repo pgdg-13 -y postgresql13-server
+
+				PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
+				_configure_postgres_server "/var/lib/pgsql/13/data"
+				systemctl enable postgresql-13
+				systemctl restart postgresql-13
+			else
+				_error_if_conflicting_install
+			fi
+			_configure_database_and_user
 			;;
 	esac
 }
