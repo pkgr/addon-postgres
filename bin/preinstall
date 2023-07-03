@@ -80,44 +80,37 @@ install_postgres_server() {
 		"redhat")
 			case $(wiz_fact "osversion") in
 				7*)
-					if ! wiz_check_package "postgresql13-server" ; then
-						_ensure_port_available
-						echo "INFO: Installing PostgreSQL v13..."
-						yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
-						yum install -y postgresql13-server postgresql13
-						PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
-
-						_configure_postgres_server "/var/lib/pgsql/13/data"
-						systemctl enable postgresql-13
-						systemctl restart postgresql-13
-					else
-						_error_if_conflicting_install
-					fi
-					_configure_database_and_user
+					repo="https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
 					;;
 				8*)
-					if ! wiz_check_package "postgresql13-server" ; then
-						_ensure_port_available
-						set -x
-						echo "INFO: Installing PostgreSQL v13..."
-						dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
-						dnf -qy module disable postgresql
-						dnf install -y postgresql13 postgresql13-server
-						PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
-
-						_configure_postgres_server "/var/lib/pgsql/13/data"
-						systemctl enable postgresql-13
-						systemctl restart postgresql-13
-					else
-						_error_if_conflicting_install
-					fi
-					_configure_database_and_user
+					repo="https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+					dnf -qy module disable postgresql
+					;;
+				9*)
+					repo="http://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+					dnf -qy module disable postgresql
 					;;
 				*)
 					echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
 					exit 1
 					;;
 			esac
+
+			if ! wiz_check_package "postgresql13-server" ; then
+				_ensure_port_available
+				echo "INFO: Installing PostgreSQL v13..."
+				yum install -y "$repo"
+				yum install -y postgresql13-server postgresql13
+				PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
+
+				_configure_postgres_server "/var/lib/pgsql/13/data"
+				systemctl enable postgresql-13
+				systemctl restart postgresql-13
+			else
+				_error_if_conflicting_install
+			fi
+			_configure_database_and_user
+
 			;;
 		"suse")
 			case $(wiz_fact "osversion") in
