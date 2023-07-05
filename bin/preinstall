@@ -36,7 +36,10 @@ install_postgres_server() {
 					;;
 				"11")
 					codename="bullseye"
-					;;					
+					;;
+				"12")
+					codename="booksworm"
+					;;
 				"14.04")
 					codename="trusty"
 					;;
