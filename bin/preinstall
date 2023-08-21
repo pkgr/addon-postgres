@@ -104,7 +104,7 @@ install_postgres_server() {
 				echo "INFO: Installing PostgreSQL v13..."
 				yum install -y "$repo"
 				yum install -y postgresql13-server postgresql13
-				PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
+				PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host=scram-sha-256" /usr/pgsql-13/bin/postgresql-13-setup initdb
 
 				_configure_postgres_server "/var/lib/pgsql/13/data"
 				wiz_service_enable postgresql-13
@@ -138,7 +138,7 @@ install_postgres_server() {
                                         zypper addrepo "$repo"
                                         zypper --gpg-auto-import-keys install --repo pgdg-13 -y postgresql13-server
 
-                                        PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
+                                        PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host=scram-sha-256" /usr/pgsql-13/bin/postgresql-13-setup initdb
                                         _configure_postgres_server "/var/lib/pgsql/13/data"
                                         systemctl enable postgresql-13
                                         systemctl restart postgresql-13
