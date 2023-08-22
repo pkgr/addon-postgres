@@ -103,7 +103,7 @@ install_postgres_server() {
 				_ensure_port_available
 				echo "INFO: Installing PostgreSQL v13..."
 				yum install -y "$repo"
-				yum install -y postgresql13-server postgresql13
+				yum install -y postgresql13-server postgresql13 postgresql13-contrib
 				PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
 
 				_configure_postgres_server "/var/lib/pgsql/13/data"
