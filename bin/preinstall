@@ -177,12 +177,16 @@ function _ensure_connection_ok() {
 function _ensure_port_available() {
 	echo -n "INFO: Checking whether port $PGPORT is available... "
 	# assume port is free if netstat unavailable
-	if ! which netstat &>/dev/null ; then
-		echo "OK (netstat not found)"
+	if which netstat &>/dev/null ; then
+		netstat_tool=netstat
+	elif which ss &>/dev/null ; then
+		netstat_tool=ss
+	else
+		echo "OK (netstat / ss not found)"
 		return 0;
 	fi
 
-	if netstat -tulpn | grep ":$PGPORT" &>/dev/null ; then
+	if $netstat_tool -tulpn | grep ":$PGPORT" &>/dev/null ; then
 		echo "KO"
 		echo "ERROR: port $PGPORT is already in use. Can't install new PostgreSQL server."
 		exit 1
