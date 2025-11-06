@@ -57,24 +57,24 @@ install_postgres_server() {
 					;;
 			esac
 
-			if [ "$codename" != "" ]; then
-				if ! wiz_check_package "postgresql-13" ; then
-					_ensure_port_available
-					echo "deb https://apt.postgresql.org/pub/repos/apt/ ${codename}-pgdg main" > /etc/apt/sources.list.d/pgdg.list
-					echo -n "INFO: Adding repository signing key from PostgreSQL... "
-					wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-					echo "INFO: Installing PostgreSQL v13..."
-					apt-get update -qq
-					DEBIAN_FRONTEND=noninteractive apt-get install postgresql-13 -y
+		if [ "$codename" != "" ]; then
+			if ! wiz_check_package "postgresql-17" ; then
+				_ensure_port_available
+				echo "deb https://apt.postgresql.org/pub/repos/apt/ ${codename}-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+				echo -n "INFO: Adding repository signing key from PostgreSQL... "
+				wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+				echo "INFO: Installing PostgreSQL v17..."
+				apt-get update -qq
+				DEBIAN_FRONTEND=noninteractive apt-get install postgresql-17 -y
 
-					su - postgres -c "/usr/lib/postgresql/13/bin/pg_ctl -D /var/lib/postgresql/13/main -w -t 10 stop || true"
-					_configure_postgres_server "/etc/postgresql/13/main"
-					sleep 3
-					su - postgres -c "/usr/lib/postgresql/13/bin/pg_ctl -D /var/lib/postgresql/13/main -w -t 10 -l logfile restart"
-				else
-					_error_if_conflicting_install
-				fi
-				_configure_database_and_user
+				su - postgres -c "/usr/lib/postgresql/17/bin/pg_ctl -D /var/lib/postgresql/17/main -w -t 10 stop || true"
+				_configure_postgres_server "/etc/postgresql/17/main"
+				sleep 3
+				su - postgres -c "/usr/lib/postgresql/17/bin/pg_ctl -D /var/lib/postgresql/17/main -w -t 10 -l logfile restart"
+			else
+				_error_if_conflicting_install
+			fi
+			_configure_database_and_user
 			else
 				echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
 				exit 1
@@ -99,29 +99,29 @@ install_postgres_server() {
 					;;
 			esac
 
-			if ! wiz_check_package "postgresql13-server" ; then
-				_ensure_port_available
-				echo "INFO: Installing PostgreSQL v13..."
-				yum install -y "$repo"
-				yum install -y postgresql13-server postgresql13 postgresql13-contrib
-				PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
+		if ! wiz_check_package "postgresql17-server" ; then
+			_ensure_port_available
+			echo "INFO: Installing PostgreSQL v17..."
+			yum install -y "$repo"
+			yum install -y postgresql17-server postgresql17 postgresql17-contrib
+			PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-17/bin/postgresql-17-setup initdb
 
-				_configure_postgres_server "/var/lib/pgsql/13/data"
-				wiz_service_enable postgresql-13
-				wiz_service_restart postgresql-13
-			else
-				_error_if_conflicting_install
-			fi
+			_configure_postgres_server "/var/lib/pgsql/17/data"
+			wiz_service_enable postgresql-17
+			wiz_service_restart postgresql-17
+		else
+			_error_if_conflicting_install
+		fi
 			_configure_database_and_user
 
 			;;
 		"suse")
 			case $(wiz_fact "osversion") in
                                 12*)
-                                        repo="https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-13.repo"
+                                        repo="https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-17.repo"
                                         ;;
                                 15*)
-                                        repo="https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-15-pg13.repo"
+                                        repo="https://download.postgresql.org/pub/repos/zypp/repo/pgdg-sles-15-pg17.repo"
                                         ;;
                                 *)
                                         repo=""
@@ -132,16 +132,16 @@ install_postgres_server() {
                                 echo "$MSG_UNKNOWN_DISTRIBUTION_VERSION"
                                 exit 1
                         else
-                                if ! wiz_check_package "postgresql13-server" ; then
+                                if ! wiz_check_package "postgresql17-server" ; then
                                          _ensure_port_available
-                                        echo "INFO: Installing PostgreSQL v13..."
+                                        echo "INFO: Installing PostgreSQL v17..."
                                         zypper addrepo "$repo"
-                                        zypper --gpg-auto-import-keys install --repo pgdg-13 -y postgresql13-server postgresql13-contrib
+                                        zypper --gpg-auto-import-keys install --repo pgdg-17 -y postgresql17-server postgresql17-contrib
 
-                                        PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-13/bin/postgresql-13-setup initdb
-                                        _configure_postgres_server "/var/lib/pgsql/13/data"
-                                        systemctl enable postgresql-13
-                                        systemctl restart postgresql-13
+                                        PGSETUP_INITDB_OPTIONS="--auth-local peer --auth-host md5" /usr/pgsql-17/bin/postgresql-17-setup initdb
+                                        _configure_postgres_server "/var/lib/pgsql/17/data"
+                                        systemctl enable postgresql-17
+                                        systemctl restart postgresql-17
                                 else
                                         _error_if_conflicting_install
                                 fi
@@ -216,7 +216,7 @@ case "$(wiz_get "postgres/autoinstall")" in
 		echo "INFO: autoinstall=skip. Skipping to next step."
 		;;
 	"install")
-		echo "INFO: autoinstall=install. A new PostgreSQL v13 server will be installed locally unless a conflicting installation is found."
+		echo "INFO: autoinstall=install. A new PostgreSQL v17 server will be installed locally unless a conflicting installation is found."
 		if [ -f "$CONF_FILE" ]; then
 			echo "INFO: existing installation found. Skipping to next step."
 			_ensure_connection_ok
